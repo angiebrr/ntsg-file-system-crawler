@@ -41,8 +41,8 @@ class Crawler(object):
     def get_file_datetimes(self, pathData):
         """Returns the ctime, last accessed time, and the last modified time of the file at the given path.
 
-        The "ctime" is different depending
-        on operating system we are on. On Linux, ctime is the last time the file inode was modified. On Windows, ctime is the creation time.
+        The "ctime" is different depending on operating system we are on. On Linux, ctime is the last time the file inode was modified. On
+        Windows, ctime is the creation time.
 
         Args:
             pathData (Path): The Path object of the file

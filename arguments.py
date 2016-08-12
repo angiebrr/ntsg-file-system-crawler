@@ -27,7 +27,7 @@ class Arguments(object):
         # Optional arguments
         self.argParser.add_argument('-o','--output', type=str, default=self.DEFAULT_OUTPUT_DIR(), help='The directory to store the results. If the directory does not exist, it will be '
                                                                                                        'created for you. (default: "%(default)s") ')
-        self.argParser.add_argument('-fn', '--filename', type=self.string_with_format, default=self.DEFAULT_OUTPUT_FILENAME(), help='The name of the output file. This does not including '
+        self.argParser.add_argument('-fn', '--filename', type=self.string_with_format, default=self.DEFAULT_OUTPUT_FILENAME(), help='The name of the output file. This does not include '
                                                                                                                                     'the extension, as that is chosen by the data store '
                                                                                                                                     'type. Please place "%%s" in the name where you want '
                                                                                                                                     'the timestamp to go. (default: "%(default)s") ')
