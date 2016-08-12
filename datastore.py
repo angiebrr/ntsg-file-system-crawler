@@ -38,27 +38,19 @@ class DataStore(metaclass=ABCMeta):
 
     @abstractmethod
     def initialize(self): 
-        """Initializes the data store.
-        
-        This will mean different things for different types of data stores. CsvDataStore objects, for example, will just create a CSV file and 
-        insert the header. On the other hand, SqlLiteDataStores will need to create a database and tables.
+        """Initializes the data store before any insertions have been made.
         """
         pass
 
     @abstractmethod
     def finalize(self):
         """Finalizes the data store after all insertions have been made.
-
-        Again, this will mean different things for different dat stores. Nothing may happen for CsvDataStore objects, but a SqlLiteDataStore may
-        index the data and sort it into tables.
         """
         pass
 
     @abstractmethod
     def insert(self, fullPath, fileParentDir, fileOwnerUsername, fileUID, fileGID, fileCTime, fileATime, fileMTime, currOS):
         """Inserts a row into the data store.
-
-        Again, this will mean different things for different types of data stores.
         
         Params:
             fullPath (str): The full (absolute) path of the file

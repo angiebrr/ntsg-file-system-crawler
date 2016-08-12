@@ -14,39 +14,39 @@ class CsvDataStore(DataStore):
         super(CsvDataStore, self).__init__(outputDir, outputFileName)
         self.outputFileExt = '.csv'
 
-
     def initialize(self):
         """Initializes the data store.
 
-        This will create a CSV file and insert the CSV header.
+        This will initialize a CSV row list and insert the CSV header to it
         """
-        with open(self.outputpath(), 'w', newline='') as file:
-            csvWriter = csv.writer(file)
-            csvWriter.writerow \
-            ([
-                'full_path',
-                'file_parent_dir',
-                'file_owner_username',
-                'file_uid',
-                'file_gid',
-                'file_ctime',
-                'file_accessed_time',
-                'file_modified_time',
-                'current_os'
-            ])
+        self.csvRows = []
+        self.csvRows.append \
+        ([
+            'full_path',
+            'file_parent_dir',
+            'file_owner_username',
+            'file_uid',
+            'file_gid',
+            'file_ctime',
+            'file_accessed_time',
+            'file_modified_time',
+            'current_os'
+        ])
 
     def finalize(self):
         """Finalizes the data store after all data has been inserted.
 
-        Nothing needs to be done for a CSV file at this point.
+        Iterates over the CSV row list and writes each row to the output CSV file
         """
-        pass
-
+        with open(self.outputpath(), 'a', newline='') as csvFile:
+            csvWriter = csv.writer(csvFile)
+            for row in self.csvRows:
+                csvWriter.writerow(row)
 
     def insert(self, fullPath, fileParentDir, fileOwnerUsername, fileUID, fileGID, fileCTime, fileATime, fileMTime, currOS):
         """Inserts a row into the data store.
 
-        This will add a comma delimited list of the given arguments
+        This will add a comma delimited list of the given arguments to the CSV rows list
 
         Params:
             fullPath (str): The full (absolute) path of the file
@@ -59,17 +59,15 @@ class CsvDataStore(DataStore):
             fileMTime (str): A datetime formatted timestamp string of the last modified time
             currOS (str): The operating system that is performing the crawl
         """
-        with open(self.outputpath(), 'a', newline='') as file:
-            csvWriter = csv.writer(file)
-            csvWriter.writerow \
-            ([
-                fullPath,
-                fileParentDir,
-                fileOwnerUsername,
-                fileUID,
-                fileGID,
-                fileCTime,
-                fileATime,
-                fileMTime,
-                currOS
-            ])
+        self.csvRows.append \
+        ([
+            fullPath,
+            fileParentDir,
+            fileOwnerUsername,
+            fileUID,
+            fileGID,
+            fileCTime,
+            fileATime,
+            fileMTime,
+            currOS
+        ])
