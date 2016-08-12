@@ -1,3 +1,8 @@
+# Dependencies
+
+- Python 3.5
+- tqdm 4.8
+
 # Overview
 
 This file system crawler, as the name implies, recursively crawls through a given input directory and gathers metadata about visited files and stores them into a "data store". 
