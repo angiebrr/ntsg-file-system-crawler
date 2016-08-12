@@ -1,4 +1,5 @@
-import os, sys, datetime
+import os, sys, datetime, time
+from tqdm import tqdm
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
 # Import file path libraries depending on the operating system; only windows and linux are supported
@@ -14,7 +15,17 @@ else:
     raise RuntimeError('The current operating system is not supported for file crawling.')
 
 class Crawler(object):
+    """Using the given input directory and data store, this crawls the directory recursively for files and saves their metadata.
 
+    This class has implemented different methods for get_file_owner_username and get_file_uid_gid for Windows and Linux machines since
+    retrieval of this metadata is different for the two systems.
+
+    Libraries are selectively imported based on operating system. As of now, only Windows and Linux are supported.
+
+    Attributes:
+        inputDir (str): The directory that will be crawled through
+        dataStore (DataStore): DataStore object that helps storing file metadata row by row
+    """
     def __init__(self, inputDir, dataStore):
         self.inputDir = inputDir
         self.dataStore = dataStore
@@ -22,11 +33,17 @@ class Crawler(object):
     def crawl(self):
         """Using the given input directory and data store, this crawls the directory recursively for files and saves their metadata.
         """
+        k = 0
 
-        for path, dirs, files in os.walk(self.inputDir):
+        # retrieve all files first in order to use tqdm for progress report
+        print("")
+        print("Retrieving files for processing...")
+        print("")
+        osWalkList = list(os.walk(self.inputDir))
+        tOSWalkList = tqdm(osWalkList)
 
+        for path, dirs, files in tOSWalkList:
             for name in files:
-
                 # gather file info
                 fullPath = os.path.join(path, name)
                 pathData = Path(fullPath)
@@ -37,6 +54,10 @@ class Crawler(object):
 
                 # insert it into a data store
                 self.dataStore.insert(fullPath, fileParentDir, fileOwnerUsername, fileUID, fileGID, fileCTime, fileATime, fileMTime, currOS)
+
+                # sleep for 5 seconds every 1000 files so the I/O bus doesn't lock up
+                if k >= 1000 and  k % 1000 == 0: time.sleep(5)
+
 
     def get_file_datetimes(self, pathData):
         """Returns the ctime, last accessed time, and the last modified time of the file at the given path.
