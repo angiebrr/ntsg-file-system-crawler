@@ -23,5 +23,8 @@ def main():
     fileCrawler = Crawler(scriptArgs.inputDir, dataStore)
     fileCrawler.crawl()
 
+    # Finalize the data store
+    dataStore.finalize()
+
 if __name__ == '__main__':
     main()

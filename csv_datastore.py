@@ -35,6 +35,13 @@ class CsvDataStore(DataStore):
                 'current_os'
             ])
 
+    def finalize(self):
+        """Finalizes the data store after all data has been inserted.
+
+        Nothing needs to be done for a CSV file at this point.
+        """
+        pass
+
 
     def insert(self, fullPath, fileParentDir, fileOwnerUsername, fileUID, fileGID, fileCTime, fileATime, fileMTime, currOS):
         """Inserts a row into the data store.

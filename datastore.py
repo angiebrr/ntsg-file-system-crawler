@@ -46,6 +46,15 @@ class DataStore(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def finalize(self):
+        """Finalizes the data store after all insertions have been made.
+
+        Again, this will mean different things for different dat stores. Nothing may happen for CsvDataStore objects, but a SqlLiteDataStore may
+        index the data and sort it into tables.
+        """
+        pass
+
+    @abstractmethod
     def insert(self, fullPath, fileParentDir, fileOwnerUsername, fileUID, fileGID, fileCTime, fileATime, fileMTime, currOS):
         """Inserts a row into the data store.
 
