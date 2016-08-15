@@ -75,9 +75,6 @@ python filesystemcrawler -i '/projects' -o 'csv_output'
 ## Known Windows Issue With Mounted Filesystems
 The Windows implementations of getting usernames, "UIDs", and "GIDs" is imperfect because you do not get a complete picture of file permissions if a mounted filesystem doesn't support security descriptors. For example, some mounted SAMBA shares or VirtualBox's shared folders may not be supported. If a file descriptor cannot be loaded, then it defaults to "Everyone". Link to issue: http://support.microsoft.com/kb/243330
 
-## Script Feedback
-Currently, the script does not provide any feedback when running. Given that you may crawl through some enormous file systems, it would be better if a progress metric was presented to the user. This is planned for in future versions.
-
 ## Different Types of Data Stores
 Currently, the script only supports CSV data stores. SQLite is planned to be built in soon.
 
@@ -85,13 +82,3 @@ Currently, the script only supports CSV data stores. SQLite is planned to be bui
 -------------------------------------------------------------------------------
 
 ** Script Author:** Angela Gross
-
-
-
-
-
-
-
-
-
-
