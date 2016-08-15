@@ -47,16 +47,39 @@ class Crawler(object):
                 # gather file info
                 fullPath = os.path.join(path, name)
                 pathData = Path(fullPath)
-                fileParentDir = pathData.parent.name
+                fullFileParentPath = pathData.parents[0]
+                fileName = pathData.stem
+                fileExt = pathData.suffix
+                fileSize = self.get_file_size(pathData)
                 fileOwnerUsername = self.get_file_owner_username(pathData)
                 fileUID, fileGID =  self.get_file_uid_gid(pathData)
                 fileCTime, fileATime, fileMTime = self.get_file_datetimes(pathData)
 
                 # insert it into a data store
-                self.dataStore.insert(fullPath, fileParentDir, fileOwnerUsername, fileUID, fileGID, fileCTime, fileATime, fileMTime, currOS)
+                self.dataStore.insert(fullFileParentPath, fileName, fileExt, fileSize, fileOwnerUsername, fileUID, fileGID, fileCTime, fileATime, fileMTime, currOS)
 
                 # sleep for 5 seconds every 1000 files so the I/O bus doesn't lock up
                 if k >= 1000 and  k % 1000 == 0: time.sleep(5)
+
+    def get_file_size(self, pathData):
+        """Returns the size of the file
+
+        Args:
+            pathData (Path): The Path object of the file
+
+        Returns:
+            str: A string of the file size. If it doesn't exist then None is returned
+
+        """
+
+        if pathData.exists():
+            fullPath = str(pathData)
+            fileStatData = os.stat(fullPath)
+            fileSize = fileStatData.st_size
+
+            return str(fileSize)
+        else:
+            return None
 
 
     def get_file_datetimes(self, pathData):
@@ -84,32 +107,6 @@ class Crawler(object):
             return cDateTime, accessedDateTime, modifiedDateTime
         else:
             return None, None, None
-
-    def print_file_information(self, pathData):
-        """A debugging method that, given a file Path object, it prints out diagnostic information about the file.
-
-        This includes:
-        - Its full path
-        - The file owner username
-        - The file UID and GID
-        - The file CTime, ATime, and MTime
-        - A "horizontal rule", or a line of "="
-
-        Args:
-            pathData (Path): The Path object of the file
-        """
-
-        fileParentDir = pathData.parent.name
-        fileOwnerUsername = self.get_file_owner_username(pathData)
-        fileOwnerUID, fileOwnerGID = self.get_file_uid_gid(pathData)
-        fileCTime, fileATime, fileMTime = self.get_file_datetimes(pathData)
-        fullPath = str(pathData)
-        print("Path: %s" % fullPath)
-        print("Parent Dir: %s" % fileParentDir)
-        print("Owner: %s" % fileOwnerUsername)
-        print("UID: %s | GID: %s" % (fileOwnerUID, fileOwnerGID))
-        print("CTime: %s | ATime: %s | MTime: %s" % (fileCTime, fileATime, fileMTime))
-        print("====================================================================")
 
     # -----------------------------------------------------------------------------------------------------------------------------------
     # WINDOWS implementations of getting usernames, uids, and gids
@@ -211,3 +208,32 @@ class Crawler(object):
                 return statData.st_uid, statData.st_gid
             else:
                 return None, None
+
+
+    def print_file_information(self, pathData):
+        """A debugging method that, given a file Path object, it prints out diagnostic information about the file.
+
+        This includes:
+        - Its full path
+        - The file owner username
+        - The file UID and GID
+        - The file CTime, ATime, and MTime
+        - A "horizontal rule", or a line of "="
+
+        Args:
+            pathData (Path): The Path object of the file
+        """
+
+        fileParentDir = pathData.parent.name
+        fileName = pathData.name
+        fileOwnerUsername = self.get_file_owner_username(pathData)
+        fileOwnerUID, fileOwnerGID = self.get_file_uid_gid(pathData)
+        fileCTime, fileATime, fileMTime = self.get_file_datetimes(pathData)
+        fullPath = str(pathData)
+        print("Name: %s" % fileName)
+        print("Path: %s" % fullPath)
+        print("Parent Dir: %s" % fileParentDir)
+        print("Owner: %s" % fileOwnerUsername)
+        print("UID: %s | GID: %s" % (fileOwnerUID, fileOwnerGID))
+        print("CTime: %s | ATime: %s | MTime: %s" % (fileCTime, fileATime, fileMTime))
+        print("====================================================================")

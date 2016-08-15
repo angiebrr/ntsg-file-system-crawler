@@ -22,8 +22,10 @@ class CsvDataStore(DataStore):
         self.csvRows = []
         self.csvRows.append \
         ([
-            'full_path',
-            'file_parent_dir',
+            'full_file_parent_path',
+            'file_name',
+            'file_ext',
+            'file_size',
             'file_owner_username',
             'file_uid',
             'file_gid',
@@ -43,14 +45,16 @@ class CsvDataStore(DataStore):
             for row in self.csvRows:
                 csvWriter.writerow(row)
 
-    def insert(self, fullPath, fileParentDir, fileOwnerUsername, fileUID, fileGID, fileCTime, fileATime, fileMTime, currOS):
+    def insert(self, fullFileParentPath, fileName, fileExt, fileSize, fileOwnerUsername, fileUID, fileGID, fileCTime, fileATime, fileMTime, currOS):
         """Inserts a row into the data store.
 
         This will add a comma delimited list of the given arguments to the CSV rows list
 
         Params:
-            fullPath (str): The full (absolute) path of the file
-            fileParentDir (str): The file's parent directory name
+            fullFileParentPath (str): The full (absolute) path of the file's parent directory
+            fileName (str): The file's name
+            fileExt (str): The file's extension
+            fileSize (str): The size of the file
             fileOwnerUsername (str): The file owner's username
             fileUID (str): The file's UID
             fileGID (str): The file's GID
@@ -61,8 +65,10 @@ class CsvDataStore(DataStore):
         """
         self.csvRows.append \
         ([
-            fullPath,
-            fileParentDir,
+            fullFileParentPath,
+            fileName,
+            fileExt,
+            fileSize,
             fileOwnerUsername,
             fileUID,
             fileGID,

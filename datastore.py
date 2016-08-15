@@ -49,12 +49,14 @@ class DataStore(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def insert(self, fullPath, fileParentDir, fileOwnerUsername, fileUID, fileGID, fileCTime, fileATime, fileMTime, currOS):
+    def insert(self, fullFileParentPath, fileName, fileExt, fileSize, fileOwnerUsername, fileUID, fileGID, fileCTime, fileATime, fileMTime, currOS):
         """Inserts a row into the data store.
         
         Params:
-            fullPath (str): The full (absolute) path of the file
-            fileParentDir (str): The file's parent directory name
+            fullFileParentPath (str): The full (absolute) path of the file's parent directory
+            fileName (str): The file's name
+            fileExt (str): The file's extension
+            fileSize (str): The size of the file
             fileOwnerUsername (str): The file owner's username
             fileUID (str): The file's UID
             fileGID (str): The file's GID
