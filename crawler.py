@@ -34,34 +34,44 @@ class Crawler(object):
         """Using the given input directory and data store, this crawls the directory recursively for files and saves their metadata.
         """
 
-        k = 0
+
 
         # retrieve all files first in order to use tqdm for progress report
         print("")
         print("Retrieving files for processing...")
         print("")
-        osWalkList = list(os.walk(self.inputDir))
-        tOSWalkList = tqdm(osWalkList)
+        k = 0
+        length = 0
+        for path, dirs, files in os.walk(self.inputDir):
+            length += len(files)
+            # sleep for 3 seconds every 10000 files so the I/O bus doesn't lock up
+            if k >= 10000 and k % 10000 == 0: time.sleep(3)
+            k+=1
 
-        for path, dirs, files in tOSWalkList:
-            for name in files:
-                # gather file info
-                fullPath = os.path.join(path, name)
-                pathData = Path(fullPath)
-                fullFileParentPath = pathData.parents[0]
-                fileName = pathData.stem
-                fileExt = pathData.suffix
-                fileSize = self.get_file_size(pathData)
-                fileOwnerUsername = self.get_file_owner_username(pathData)
-                fileUID, fileGID =  self.get_file_uid_gid(pathData)
-                fileCTime, fileATime, fileMTime = self.get_file_datetimes(pathData)
+        k = 0
+        with tqdm(total=length) as progressBar:
+            for path, dirs, files in os.walk(self.inputDir):
+                for name in files:
+                    # gather file info
+                    fullPath = os.path.join(path, name)
+                    pathData = Path(fullPath)
+                    fullFileParentPath = pathData.parents[0]
+                    fileName = pathData.stem
+                    fileExt = pathData.suffix
+                    fileSize = self.get_file_size(pathData)
+                    fileOwnerUsername = self.get_file_owner_username(pathData)
+                    fileUID, fileGID =  self.get_file_uid_gid(pathData)
+                    fileCTime, fileATime, fileMTime = self.get_file_datetimes(pathData)
 
-                # insert it into a data store
-                self.dataStore.insert(fullFileParentPath, fileName, fileExt, fileSize, fileOwnerUsername, fileUID, fileGID, fileCTime, fileATime, fileMTime, currOS)
+                    # insert it into a data store
+                    self.dataStore.insert(fullFileParentPath, fileName, fileExt, fileSize, fileOwnerUsername, fileUID, fileGID, fileCTime, fileATime, fileMTime, currOS)
 
-                # sleep for 5 seconds every 1000 files so the I/O bus doesn't lock up
-                if k >= 1000 and  k % 1000 == 0: time.sleep(5)
-                k+=1
+                    # sleep for 3 seconds every 10000 files so the I/O bus doesn't lock up
+                    if k >= 10000 and  k % 10000 == 0: time.sleep(3)
+                    k+=1
+
+                    # update progress bar
+                    progressBar.update(1)
 
     def get_file_size(self, pathData):
         """Returns the size of the file
