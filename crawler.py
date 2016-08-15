@@ -74,7 +74,9 @@ class Crawler(object):
                     progressBar.update(1)
 
     def get_file_size(self, pathData):
-        """Returns the size of the file
+        """Returns the size of the file.
+
+        If there are too many levels of symbolic links, this may throw an exception. The file size returned will just be -1
 
         Args:
             pathData (Path): The Path object of the file
@@ -84,14 +86,17 @@ class Crawler(object):
 
         """
 
-        if pathData.exists():
-            fullPath = str(pathData)
-            fileStatData = os.stat(fullPath)
-            fileSize = fileStatData.st_size
+        try:
+            if pathData.exists():
+                fullPath = str(pathData)
+                fileStatData = os.stat(fullPath)
+                fileSize = fileStatData.st_size
 
-            return str(fileSize)
-        else:
-            return None
+                return str(fileSize)
+            else:
+                return None
+        except Exception:
+            return -1
 
 
     def get_file_datetimes(self, pathData):
