@@ -172,6 +172,9 @@ class Crawler(object):
         def get_file_owner_username(self, pathData):
             """Returns the username of the owner of the file
 
+            If the user ID is not native to the operating system, (i.e. a Windows user in a Linux OS) then
+            "NonNativeUser" is returned.
+
             Args:
                 pathData (Path): The Path object of the file
 
@@ -180,7 +183,11 @@ class Crawler(object):
             """
 
             if pathData.exists():
-                return pathData.owner()
+                try:
+                    owner = pathData.owner()
+                except Exception:
+                    owner = "NonNativeUser"
+                return owner
             else:
                 return None
 
