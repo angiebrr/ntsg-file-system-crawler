@@ -9,8 +9,10 @@ This file system crawler, as the name implies, recursively crawls through a give
 
 The gathered metadata includes:
 
-* The file's absolute path
-* The file's parent directory name
+* The file parent directory's absolute path
+* The file's name (stem) without its "suffix" (extension)
+* The file's extension
+* The file's size
 * The file's UID
 * The file's GID
 * The file's "ctime"
