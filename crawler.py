@@ -33,6 +33,7 @@ class Crawler(object):
     def crawl(self):
         """Using the given input directory and data store, this crawls the directory recursively for files and saves their metadata.
         """
+
         k = 0
 
         # retrieve all files first in order to use tqdm for progress report
@@ -60,6 +61,7 @@ class Crawler(object):
 
                 # sleep for 5 seconds every 1000 files so the I/O bus doesn't lock up
                 if k >= 1000 and  k % 1000 == 0: time.sleep(5)
+                k+=1
 
     def get_file_size(self, pathData):
         """Returns the size of the file
