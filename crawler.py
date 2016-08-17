@@ -63,7 +63,7 @@ class Crawler(object):
                         except Exception as ex:
                             logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
                     else:
-                        logging.warning("[%s]: File %s was not processed because shortcuts and symlinks are not supported" % (str(datetime.now()), fullPath) )
+                        logging.warning("[%s]: File %s was not processed because shortcuts and symlinks are not supported \r" % (str(datetime.now()), fullPath) )
 
                     # sleep for 3 seconds every 10000 files so the I/O bus doesn't lock up
                     if k >= 10000 and  k % 10000 == 0:

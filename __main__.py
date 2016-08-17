@@ -24,7 +24,7 @@ def main():
 
     # Create logger; put it in the same path as the output
     logging.basicConfig(filename=dataStore.outputpath(addExt=False) + '.log', level=logging.DEBUG)
-    logging.info("[%s]: Crawling in directory %s and outputting in %s as a %s data store" %
+    logging.info("[%s]: Crawling in directory %s and outputting in %s as a %s data store \r" %
     (
         str(datetime.now()),
         scriptArgs.inputDir,
@@ -40,10 +40,10 @@ def main():
         # Finalize the data store
         dataStore.finalize()
     except Exception as ex:
-        logging.error("[%s]: %s" % (str(datetime.now()), ex))
+        logging.error("[%s]: %s \r" % (str(datetime.now()), ex))
 
     # Log that the crawl is finished
-    logging.info("[%s]: File crawl is finished" % str(datetime.now()))
+    logging.info("[%s]: File crawl is finished \r" % str(datetime.now()))
 
 if __name__ == '__main__':
     main()
