@@ -25,16 +25,23 @@ class DataStore(metaclass=ABCMeta):
         except OSError as exception:
             if exception.errno != errno.EEXIST: raise
 
-    def outputpath(self):
+    def outputpath(self, addExt = True):
         """Returns the path of the data store output.
 
         Note that this path may or may not be absolute. This depends on whether or not the user gives the absolute/relative path of the output
         directory.
 
+        Params:
+            addExt (bool): Whether or not to add the output file extension
+
         Returns:
             str: The path of the data store output.
         """
-        return self.outputDir + '/' + self.outputFileName + self.outputFileExt
+
+        if addExt:
+            return self.outputDir + '/' + self.outputFileName + self.outputFileExt
+        else:
+            return self.outputDir + '/' + self.outputFileName
 
     @abstractmethod
     def initialize(self): 

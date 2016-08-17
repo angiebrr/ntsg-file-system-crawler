@@ -1,4 +1,5 @@
-import os, sys, datetime, time
+import os, sys, time, logging
+from datetime import datetime
 from tqdm import tqdm
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
@@ -22,6 +23,9 @@ class Crawler(object):
 
     Libraries are selectively imported based on operating system. As of now, only Windows and Linux are supported.
 
+    NOTE: Files that are symbolic links OR shortcut files (i.e. extensions with .lnk) will NOT be processed because of errors that can
+    arise when trying to gather stats about them
+
     Attributes:
         inputDir (str): The directory that will be crawled through
         dataStore (DataStore): DataStore object that helps storing file metadata row by row
@@ -34,44 +38,42 @@ class Crawler(object):
         """Using the given input directory and data store, this crawls the directory recursively for files and saves their metadata.
         """
 
-
-
-        # retrieve all files first in order to use tqdm for progress report
-        print("")
-        print("Retrieving files for processing...")
-        print("")
+        pbarDesc = "Processing file %s"
+        pbarDescSleeping = "Sleeping while processing file %s..."
         k = 0
-        length = 0
-        for path, dirs, files in os.walk(self.inputDir):
-            length += len(files)
-            # sleep for 3 seconds every 10000 files so the I/O bus doesn't lock up
-            if k >= 10000 and k % 10000 == 0: time.sleep(3)
-            k+=1
-
-        k = 0
-        with tqdm(total=length) as progressBar:
+        with tqdm( desc=(pbarDesc % k) ) as progressBar:
             for path, dirs, files in os.walk(self.inputDir):
                 for name in files:
-                    # gather file info
+                    # get basic file information from path object and do not process it if it's a symbolic link OR if it fails
                     fullPath = os.path.join(path, name)
                     pathData = Path(fullPath)
-                    fullFileParentPath = pathData.parents[0]
-                    fileName = pathData.stem
                     fileExt = pathData.suffix
-                    fileSize = self.get_file_size(pathData)
-                    fileOwnerUsername = self.get_file_owner_username(pathData)
-                    fileUID, fileGID =  self.get_file_uid_gid(pathData)
-                    fileCTime, fileATime, fileMTime = self.get_file_datetimes(pathData)
+                    if not pathData.is_symlink() and not fileExt == '.lnk':
+                        try:
+                            # gather file info
+                            fullFileParentPath = pathData.parents[0]
+                            fileName = pathData.stem
+                            fileSize = self.get_file_size(pathData)
+                            fileOwnerUsername = self.get_file_owner_username(pathData)
+                            fileUID, fileGID =  self.get_file_uid_gid(pathData)
+                            fileCTime, fileATime, fileMTime = self.get_file_datetimes(pathData)
 
-                    # insert it into a data store
-                    self.dataStore.insert(fullFileParentPath, fileName, fileExt, fileSize, fileOwnerUsername, fileUID, fileGID, fileCTime, fileATime, fileMTime, currOS)
+                            # insert it into a data store
+                            self.dataStore.insert(fullFileParentPath, fileName, fileExt, fileSize, fileOwnerUsername, fileUID, fileGID, fileCTime, fileATime, fileMTime, currOS)
+                        except Exception as ex:
+                            logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
+                    else:
+                        logging.warning("[%s]: File %s was not processed because shortcuts and symlinks are not supported" % (str(datetime.now()), fullPath) )
 
                     # sleep for 3 seconds every 10000 files so the I/O bus doesn't lock up
-                    if k >= 10000 and  k % 10000 == 0: time.sleep(3)
+                    if k >= 10000 and  k % 10000 == 0:
+                        progressBar.set_description(pbarDescSleeping % k)
+                        time.sleep(3)
                     k+=1
 
                     # update progress bar
                     progressBar.update(1)
+                    progressBar.set_description(pbarDesc % k)
 
     def get_file_size(self, pathData):
         """Returns the size of the file.
@@ -95,7 +97,8 @@ class Crawler(object):
                 return str(fileSize)
             else:
                 return None
-        except Exception:
+        except Exception as ex:
+            logging.error(ex)
             return -1
 
 
@@ -113,13 +116,12 @@ class Crawler(object):
             str: A datetime formatted timestamp string of the last accessed time
             str: A datetime formatted timestamp string of the last modified time
         """
-
         if pathData.exists():
             fullPath = str(pathData)
             fileStatData = os.stat(fullPath)
-            cDateTime = datetime.datetime.fromtimestamp(fileStatData.st_ctime)
-            accessedDateTime = datetime.datetime.fromtimestamp(fileStatData.st_atime)
-            modifiedDateTime = datetime.datetime.fromtimestamp(fileStatData.st_mtime)
+            cDateTime = datetime.fromtimestamp(fileStatData.st_ctime)
+            accessedDateTime = datetime.fromtimestamp(fileStatData.st_atime)
+            modifiedDateTime = datetime.fromtimestamp(fileStatData.st_mtime)
 
             return cDateTime, accessedDateTime, modifiedDateTime
         else:
