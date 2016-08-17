@@ -45,10 +45,12 @@ class Crawler(object):
             for path, dirs, files in os.walk(self.inputDir):
                 for name in files:
                     # get basic file information from path object and do not process it if it's a symbolic link OR if it fails
-                    fullPath = os.path.join(path, name)
+                    decodedPath = path.encode('utf-8', 'surrogateescape').decode('ISO-8859-1')
+                    decodedName = name.encode('utf-8', 'surrogateescape').decode('ISO-8859-1')
+                    fullPath = os.path.join(decodedPath, decodedName)
                     pathData = Path(fullPath)
                     fileExt = pathData.suffix
-                    if not pathData.is_symlink() and not fileExt == '.lnk':
+                    if not pathData.is_symlink() and not fileExt.lower() == '.lnk':
                         try:
                             # gather file info
                             fullFileParentPath = pathData.parents[0]
