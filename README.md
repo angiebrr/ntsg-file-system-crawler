@@ -75,6 +75,7 @@ python filesystemcrawler -i '/projects' -o 'csv_output'
 A file is created with the same name (but ".log" extension) as the output file and is placed in the output directory. 
 
 The following things are logged:
+
 * When the crawler begins (it includes the input and output directories and the data store type)
 * When an error occurs during either crawling or data store finalizing
 * When an error occurs when processing a file
