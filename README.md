@@ -70,13 +70,39 @@ Changing the output directory to "csv_output" when crawling in input directory "
 python filesystemcrawler -i '/projects' -o 'csv_output'
 ```
 
+# Logging
+
+A file is created with the same name (but ".log" extension) as the output file and is placed in the output directory. 
+
+The following things are logged:
+* When the crawler begins (it includes the input and output directories and the data store type)
+* When an error occurs during either crawling or data store finalizing
+* When an error occurs when processing a file
+* When a file is not processed because it's a symbolic link or a shortcut (a ".lnk" file in Windows)
+* When the crawl ends and the data store is finalized
+
+It includes a message and a timestamp that may look something like this:
+
+
+```
+#!bash
+# /crawler_output/my-dir-crawl_Aug-17-2016_10-59-50.log
+
+INFO:root:[2016-08-17 10:59:50.385371]: Crawling in directory /home/my.dir and outputting in /crawler_output/my-dir-crawl_Aug-17-2016_10-59-50.csv as a csv data store 
+WARNING:root:[2016-08-17 11:01:26.500391]: File /home/my.dir/asymlink was not processed because shortcuts and symlinks are not supported 
+INFO:root:[2016-08-17 10:59:51.083337]: File crawl is finished 
+```
+
 # Known issues and future improvements
 
 ## Known Windows Issue With Mounted Filesystems
 The Windows implementations of getting usernames, "UIDs", and "GIDs" is imperfect because you do not get a complete picture of file permissions if a mounted filesystem doesn't support security descriptors. For example, some mounted SAMBA shares or VirtualBox's shared folders may not be supported. If a file descriptor cannot be loaded, then it defaults to "Everyone". Link to issue: http://support.microsoft.com/kb/243330
 
 ## Different Types of Data Stores
-Currently, the script only supports CSV data stores. SQLite is planned to be built in soon.
+Currently, the script only supports CSV data stores. SQLite is planned to be built in later versions.
+
+## Symbolic Links and Shortcuts
+Symbolic links and shortcuts (".lnk" files in Windows) are known to cause problems when you ask about their metadata (file size, whether or not the path exists, etc.) due to the operating system throwing an error when there are too many levels of symbolic links. Thus, these files *are not processed*, but they are logged in a file with the same name (but ".log" extension) as the output file and is placed in the output directory. 
 
 
 -------------------------------------------------------------------------------
