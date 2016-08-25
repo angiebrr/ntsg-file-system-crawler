@@ -60,35 +60,36 @@ class Crawler(object):
                     fileExt = pathData.suffix
                     fileMode =  'FILE' if not pathData.is_symlink() and not fileExt.lower() == '.lnk' else 'LINK'
 
-                    try:
-                        # gather file info
-                        fullFileParentPath = pathData.parents[0]
-                        fileRealPath = self.get_file_real_path(fullPath, fileMode, fileExt)
-                        fileName = pathData.stem
-                        fileOwnerUsername = self.get_file_owner_username(pathData)
-                        fileUID, fileGID =  self.get_file_uid_gid(fullPath)
-                        fileCTime, fileATime, fileMTime = self.get_file_datetimes(fullPath)
-                        fileSize = self.get_file_size(fullPath) if fileMode != 'LINK' else 0
+                    if pathData.exists():
+                        try:
+                            # gather file info
+                            fullFileParentPath = pathData.parents[0]
+                            fileRealPath = self.get_file_real_path(fullPath, fileMode, fileExt)
+                            fileName = pathData.stem
+                            fileOwnerUsername = self.get_file_owner_username(pathData)
+                            fileUID, fileGID =  self.get_file_uid_gid(fullPath)
+                            fileCTime, fileATime, fileMTime = self.get_file_datetimes(fullPath)
+                            fileSize = self.get_file_size(fullPath) if fileMode != 'LINK' else 0
 
-                        # insert it into a data store
-                        self.dataStore.insert(fileMode, fullFileParentPath, fileName, fileExt, fileSize, fileOwnerUsername, fileUID, fileGID,
-                                              fileCTime, fileATime, fileMTime, fileRealPath, currOS)
+                            # insert it into a data store
+                            self.dataStore.insert(fileMode, fullFileParentPath, fileName, fileExt, fileSize, fileOwnerUsername, fileUID, fileGID,
+                                                  fileCTime, fileATime, fileMTime, fileRealPath, currOS)
 
-                        # update all parent directories with file size
-                        for parentPath in pathData.parents:
-                            if parentPath in inputPathData.parents:# do not update/insert directories that we aren't crawling into (i.e. parents of input dir)
-                                break
-                            elif parentPath not in processedDirs:
-                                # only process a directory once
-                                processedDirs.add(parentPath)
-                                self.process_directory(parentPath)
-                                # update progress bar
-                                progressBar.set_description(pbarDirDesc % d)
-                                progressBar.update(1)
-                                d += 1
+                            # update all parent directories with file size
+                            for parentPath in pathData.parents:
+                                if parentPath in inputPathData.parents:# do not update/insert directories that we aren't crawling into (i.e. parents of input dir)
+                                    break
+                                elif parentPath not in processedDirs:
+                                    # only process a directory once
+                                    processedDirs.add(parentPath)
+                                    self.process_directory(parentPath)
+                                    # update progress bar
+                                    progressBar.set_description(pbarDirDesc % d)
+                                    progressBar.update(1)
+                                    d += 1
 
-                    except Exception as ex:
-                        logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
+                        except Exception as ex:
+                            logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
 
                     # sleep for 3 seconds every 10000 files so the I/O bus doesn't lock up
                     if k+d >= 10000 and  k+d % 10000 == 0:
