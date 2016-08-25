@@ -38,10 +38,12 @@ class DataStore(metaclass=ABCMeta):
             str: The path of the data store output.
         """
 
+        outPath = self.outputDir + '/' + self.outputFileName
+
         if addExt:
-            return self.outputDir + '/' + self.outputFileName + self.outputFileExt
+            return outPath + self.outputFileExt
         else:
-            return self.outputDir + '/' + self.outputFileName
+            return outPath + self.outputFileName
 
     @abstractmethod
     def initialize(self): 
@@ -56,10 +58,11 @@ class DataStore(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def insert(self, fullFileParentPath, fileName, fileExt, fileSize, fileOwnerUsername, fileUID, fileGID, fileCTime, fileATime, fileMTime, currOS):
+    def insert(self, fileMode, fullFileParentPath, fileName, fileExt, fileSize, fileOwnerUsername, fileUID, fileGID, fileCTime, fileATime, fileMTime, fileRealPath, currOS):
         """Inserts a row into the data store.
         
         Params:
+            fileMode (str): Whether or not the entry is a directory (DIR), a link or shortcut (LINK), or normal file (FILE)
             fullFileParentPath (str): The full (absolute) path of the file's parent directory
             fileName (str): The file's name
             fileExt (str): The file's extension
@@ -70,6 +73,7 @@ class DataStore(metaclass=ABCMeta):
             fileCTime (str): A datetime formatted timestamp string of the ctime
             fileATime (str): A datetime formatted timestamp string of the last accessed time
             fileMTime (str): A datetime formatted timestamp string of the last modified time
+            fileRealPath (str): If this file is a symbolic link or a shortcut, this is the file's target path
             currOS (str): The operating system that is performing the crawl
         """
         pass

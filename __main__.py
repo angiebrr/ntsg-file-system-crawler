@@ -17,7 +17,7 @@ def main():
     # Parse and collect all arguments
     scriptArgs = Arguments()
 
-    # Create and initialize a data store
+    # Create and initialize a data store for the crawl
     dataStore = DataStoreFactory.create(scriptArgs.dataStoreType, scriptArgs.outputDir, scriptArgs.outputFileName)
     dataStore.create_output_dir()
     dataStore.initialize()
@@ -37,8 +37,6 @@ def main():
         fileCrawler = Crawler(scriptArgs.inputDir, dataStore)
         fileCrawler.crawl()
 
-        # Finalize the data store
-        dataStore.finalize()
     except Exception as ex:
         logging.error("[%s]: %s \r" % (str(datetime.now()), ex))
 

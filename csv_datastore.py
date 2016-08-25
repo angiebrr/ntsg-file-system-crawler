@@ -22,16 +22,18 @@ class CsvDataStore(DataStore):
         self.csvRows = []
         self.csvRows.append \
         ([
+            'file_mode',
             'full_file_parent_path',
             'file_name',
             'file_ext',
-            'file_size',
+            'file_size_in_bytes',
             'file_owner_username',
             'file_uid',
             'file_gid',
             'file_ctime',
             'file_accessed_time',
             'file_modified_time',
+            'file_real_path',
             'current_os'
         ])
 
@@ -45,12 +47,13 @@ class CsvDataStore(DataStore):
             for row in self.csvRows:
                 csvWriter.writerow(row)
 
-    def insert(self, fullFileParentPath, fileName, fileExt, fileSize, fileOwnerUsername, fileUID, fileGID, fileCTime, fileATime, fileMTime, currOS):
+    def insert(self, fileMode, fullFileParentPath, fileName, fileExt, fileSize, fileOwnerUsername, fileUID, fileGID, fileCTime, fileATime, fileMTime, fileRealPath, currOS):
         """Inserts a row into the data store.
 
         This will add a comma delimited list of the given arguments to the CSV rows list
 
         Params:
+            fileMode (str): Whether or not the entry is a directory (DIR), a link or shortcut (LINK), or normal file (FILE)
             fullFileParentPath (str): The full (absolute) path of the file's parent directory
             fileName (str): The file's name
             fileExt (str): The file's extension
@@ -61,10 +64,12 @@ class CsvDataStore(DataStore):
             fileCTime (str): A datetime formatted timestamp string of the ctime
             fileATime (str): A datetime formatted timestamp string of the last accessed time
             fileMTime (str): A datetime formatted timestamp string of the last modified time
+            fileRealPath (str): If this file is a symbolic link or a shortcut, this is the file's target path
             currOS (str): The operating system that is performing the crawl
         """
         self.csvRows.append \
         ([
+            fileMode,
             fullFileParentPath,
             fileName,
             fileExt,
@@ -75,5 +80,7 @@ class CsvDataStore(DataStore):
             fileCTime,
             fileATime,
             fileMTime,
+            fileRealPath,
             currOS
         ])
+

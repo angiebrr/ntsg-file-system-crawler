@@ -8,7 +8,7 @@ from tqdm import tqdm
 osObj = sys.platform.lower()
 from pathlib import Path
 if osObj.startswith('win'):
-    import win32security
+    import win32security, win32com.client
     currOS = 'windows'
 elif osObj.startswith('linux'):
     currOS = 'linux'
@@ -34,62 +34,112 @@ class Crawler(object):
         self.inputDir = inputDir
         self.dataStore = dataStore
 
+
+
     def crawl(self):
-        """Using the given input directory and data store, this crawls the directory recursively for files and saves their metadata.
+        """Using the given input directory and data store, this crawls the directory recursively for files/directories and saves their metadata.
         """
 
+        inputPathData = Path(self.inputDir)
+        dirSizes = {}
         pbarDesc = "Processing file %s"
         pbarDescSleeping = "Sleeping while processing file %s..."
         k = 0
         with tqdm( desc=(pbarDesc % k) ) as progressBar:
+            # insert rows for file information
             for path, dirs, files in os.walk(self.inputDir):
                 for name in files:
-                    # get basic file information from path object and do not process it if it's a symbolic link OR if it fails
+                    # get basic file information from path object and do not process it if it fails
                     decodedPath = path.encode('utf-8', 'surrogateescape').decode('ISO-8859-1')
                     decodedName = name.encode('utf-8', 'surrogateescape').decode('ISO-8859-1')
                     fullPath = os.path.join(decodedPath, decodedName)
                     pathData = Path(fullPath)
                     fileExt = pathData.suffix
-                    if not pathData.is_symlink() and not fileExt.lower() == '.lnk':
-                        try:
-                            # gather file info
-                            fullFileParentPath = pathData.parents[0]
-                            fileName = pathData.stem
-                            fileSize = self.get_file_size(pathData)
-                            fileOwnerUsername = self.get_file_owner_username(pathData)
-                            fileUID, fileGID =  self.get_file_uid_gid(pathData)
-                            fileCTime, fileATime, fileMTime = self.get_file_datetimes(pathData)
+                    fileMode =  'FILE' if not pathData.is_symlink() and not fileExt.lower() == '.lnk' else 'LINK'
 
-                            # insert it into a data store
-                            self.dataStore.insert(fullFileParentPath, fileName, fileExt, fileSize, fileOwnerUsername, fileUID, fileGID, fileCTime, fileATime, fileMTime, currOS)
-                        except Exception as ex:
-                            logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
-                    else:
-                        logging.warning("[%s]: File %s was not processed because shortcuts and symlinks are not supported \r" % (str(datetime.now()), fullPath) )
+                    try:
+                        # gather file info
+                        fullFileParentPath = pathData.parents[0]
+                        fileRealPath = self.get_file_real_path(pathData, fileMode, fileExt)
+                        fileName = pathData.stem
+                        fileOwnerUsername = self.get_file_owner_username(pathData)
+                        fileUID, fileGID =  self.get_file_uid_gid(pathData)
+                        fileCTime, fileATime, fileMTime = self.get_file_datetimes(pathData)
+                        fileSize = self.get_file_size(pathData) if fileMode != 'LINK' else 0
+
+                        # insert it into a data store
+                        self.dataStore.insert(fileMode, fullFileParentPath, fileName, fileExt, fileSize, fileOwnerUsername, fileUID, fileGID,
+                                              fileCTime, fileATime, fileMTime, fileRealPath, currOS)
+
+                        # update all parent directories with file size
+                        for parentPath in pathData.parents:
+                            if parentPath not in inputPathData.parents: # do not update/insert directories that we aren't crawling into (i.e. parents of input dir)
+                                dirSizes[parentPath] = dirSizes.get(parentPath, 0) + int(fileSize)
+
+                    except Exception as ex:
+                        logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
 
                     # sleep for 3 seconds every 10000 files so the I/O bus doesn't lock up
                     if k >= 10000 and  k % 10000 == 0:
                         progressBar.set_description(pbarDescSleeping % k)
+                        progressBar.update(0)
                         time.sleep(3)
-                    k+=1
+                    k += 1
 
                     # update progress bar
-                    progressBar.update(1)
                     progressBar.set_description(pbarDesc % k)
+                    progressBar.update(1)
+
+            # insert rows for directory information
+            pbarDesc = "Processing directory %s"
+            pbarDescSleeping = "Sleeping while processing directory %s..."
+            k = 0
+            for dirPath, dirSize in dirSizes.items():
+                try:
+                    # get basic file information from path object and do not process it if it fails
+                    pathData = Path(dirPath)
+
+                    # gather directory info
+                    fileMode = 'DIR'
+                    fileName = pathData.stem
+                    fileExt = ''
+                    fileRealPath = self.get_file_real_path(pathData, fileMode, fileExt)
+                    fileOwnerUsername = self.get_file_owner_username(pathData)
+                    fileUID, fileGID = self.get_file_uid_gid(pathData)
+                    fileCTime, fileATime, fileMTime = self.get_file_datetimes(pathData)
+
+                    # insert it into the data store
+                    self.dataStore.insert(fileMode, dirPath, fileName, fileExt, dirSize, fileOwnerUsername, fileUID, fileGID,
+                                          fileCTime, fileATime, fileMTime, fileRealPath, currOS)
+                except Exception as ex:
+                    logging.error("[%s]: Problem processing directory %s \r\n %s" % (str(datetime.now()), dirPath, ex))
+
+                # sleep for 3 seconds every 10000 directories so the I/O bus doesn't lock up
+                if k >= 10000 and k % 10000 == 0:
+                    progressBar.set_description(pbarDescSleeping % k)
+                    progressBar.update(0)
+                    time.sleep(3)
+                k += 1
+
+                # update progress bar
+                progressBar.set_description(pbarDesc % k)
+                progressBar.update(1)
+
+            # finalize the data store
+            self.dataStore.finalize()
 
     def get_file_size(self, pathData):
         """Returns the size of the file.
 
         If there are too many levels of symbolic links, this may throw an exception. The file size returned will just be -1
 
-        Args:
+        Params:
             pathData (Path): The Path object of the file
 
         Returns:
             str: A string of the file size. If it doesn't exist then None is returned
 
         """
-
         try:
             if pathData.exists():
                 fullPath = str(pathData)
@@ -110,7 +160,7 @@ class Crawler(object):
         The "ctime" is different depending on operating system we are on. On Linux, ctime is the last time the file inode was modified. On
         Windows, ctime is the creation time.
 
-        Args:
+        Params:
             pathData (Path): The Path object of the file
 
         Returns:
@@ -141,7 +191,7 @@ class Crawler(object):
         def get_file_owner_username(self, pathData):
             """Returns the username of the owner of the file
 
-            Args:
+            Params:
                 pathData (Path): The Path object of the file
 
             Returns:
@@ -163,7 +213,7 @@ class Crawler(object):
             In Windows, this value will be a lengthy string called a "security descriptor". The primary group SID is hardly used in
             Windows, but it will serve its purpose for the metadata gathering that needs to be done here.
 
-            Args:
+            Params:
                 pathData (Path): The Path object of the file
 
             Returns:
@@ -182,6 +232,34 @@ class Crawler(object):
             else:
                 return None, None
 
+        def get_file_real_path(self, pathData, fileMode, fileExt):
+            """Returns the "real path" of the file.
+
+            If it's a shortcut (.lnk file), it will return the true path that it's pointing to. If it's not a shortcut, then it will just return an empty string. If something goes
+            wrong, then an empty string is also returned.
+
+            Params:
+                pathData (Path): The path object of the file
+                fileMode (str): The mode of the file
+                fileExt (str): The extension of the file
+
+            Returns:
+                str: A string of the "real path" of the file.
+
+            """
+            try:
+                fullPath = str(pathData)
+                if fileExt.lower() == '.lnk' and pathData.exists() and fileMode == 'LINK':
+                    shell = win32com.client.Dispatch("WScript.Shell")
+                    shortcut = shell.CreateShortCut(fullPath)
+                    realPath = shortcut.Targetpath
+                    return realPath
+                else:
+                    return ''
+            except Exception as ex:
+                logging.error(ex)
+                return ''
+
     # ----------------------------------------------------------------------------------------
     # LINUX implementations of getting usernames, uids, and gids
     # ----------------------------------------------------------------------------------------
@@ -193,7 +271,7 @@ class Crawler(object):
             If the user ID is not native to the operating system, (i.e. a Windows user in a Linux OS) then
             "NonNativeUser" is returned.
 
-            Args:
+            Params:
                 pathData (Path): The Path object of the file
 
             Returns:
@@ -214,7 +292,7 @@ class Crawler(object):
 
             In Linux, all files have and regularly use the "user" and "group" metadata information
 
-            Args:
+            Params:
                 pathData (Path): The Path object of the file
 
             Returns:
@@ -230,6 +308,34 @@ class Crawler(object):
             else:
                 return None, None
 
+        def get_file_real_path(self, pathData, fileMode, fileExt):
+            """Returns the "real path" of the file.
+
+            If it's a symbolic link, it will return the true path that it's pointing to (even if it's multi-layered). If it's not a symbolic link, then it will just return an empty
+            string. If something goes wrong, then an empty string is also returned.
+
+            If it's a shortcut ('.lnk' file), the true path cannot be determined and a string with the problem stated is returned
+
+            Params:
+                pathData (Path): The path object of the file
+                fileMode (str): The mode of the file
+                fileExt (str): The file extension
+
+            Returns:
+                str: A string of the "real path" of the file.
+
+            """
+            try:
+                fullPath = str(pathData)
+                if fileExt.lower() != '.lnk' and pathData.exists() and fileMode == 'LINK':
+                    realPath = os.path.realpath(fullPath)
+                    return realPath
+                else:
+                    return ''
+            except Exception as ex:
+                logging.error(ex)
+                return ''
+
 
     def print_file_information(self, pathData):
         """A debugging method that, given a file Path object, it prints out diagnostic information about the file.
@@ -241,7 +347,7 @@ class Crawler(object):
         - The file CTime, ATime, and MTime
         - A "horizontal rule", or a line of "="
 
-        Args:
+        Params:
             pathData (Path): The Path object of the file
         """
 
