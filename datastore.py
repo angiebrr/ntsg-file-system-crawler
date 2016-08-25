@@ -43,7 +43,7 @@ class DataStore(metaclass=ABCMeta):
         if addExt:
             return outPath + self.outputFileExt
         else:
-            return outPath + self.outputFileName
+            return outPath
 
     @abstractmethod
     def initialize(self): 
