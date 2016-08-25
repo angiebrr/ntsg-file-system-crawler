@@ -44,8 +44,10 @@ class Crawler(object):
         inputPathData = Path(self.inputDir)
         processedDirs = set()
         pbarDesc = "Processing file %s"
-        pbarDescSleeping = "Sleeping while processing file %s..."
+        pbarDirDesc = "Processing directory %s"
+        pbarDescSleeping = "Sleeping while processing file %s"
         k = 0
+        d = 0
         with tqdm( desc=(pbarDesc % k) ) as progressBar:
             # insert rows for file information
             for path, dirs, files in os.walk(self.inputDir):
@@ -76,18 +78,22 @@ class Crawler(object):
                         for parentPath in pathData.parents:
                             if parentPath in inputPathData.parents:# do not update/insert directories that we aren't crawling into (i.e. parents of input dir)
                                 break
-                            elif parentPath not in processedDirs:# only process a directory once
+                            elif parentPath not in processedDirs:
+                                # only process a directory once
                                 processedDirs.add(parentPath)
                                 self.process_directory(parentPath)
-
+                                # update progress bar
+                                progressBar.set_description(pbarDirDesc % d)
+                                progressBar.update(1)
+                                d += 1
 
                     except Exception as ex:
                         logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
 
                     # sleep for 3 seconds every 10000 files so the I/O bus doesn't lock up
-                    if k >= 10000 and  k % 10000 == 0:
+                    if k+d >= 10000 and  k+d % 10000 == 0:
                         progressBar.set_description(pbarDescSleeping % k)
-                        progressBar.update(0)
+                        progressBar.update(1)
                         time.sleep(3)
                     k += 1
 
