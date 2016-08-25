@@ -11,6 +11,7 @@ if osObj.startswith('win'):
     import win32security, win32com.client
     currOS = 'windows'
 elif osObj.startswith('linux'):
+    import subprocess
     currOS = 'linux'
 else:
     raise RuntimeError('The current operating system is not supported for file crawling.')
@@ -41,7 +42,7 @@ class Crawler(object):
         """
 
         inputPathData = Path(self.inputDir)
-        dirSizes = {}
+        processedDirs = set()
         pbarDesc = "Processing file %s"
         pbarDescSleeping = "Sleeping while processing file %s..."
         k = 0
@@ -60,12 +61,12 @@ class Crawler(object):
                     try:
                         # gather file info
                         fullFileParentPath = pathData.parents[0]
-                        fileRealPath = self.get_file_real_path(pathData, fileMode, fileExt)
+                        fileRealPath = self.get_file_real_path(fullPath, fileMode, fileExt)
                         fileName = pathData.stem
                         fileOwnerUsername = self.get_file_owner_username(pathData)
-                        fileUID, fileGID =  self.get_file_uid_gid(pathData)
-                        fileCTime, fileATime, fileMTime = self.get_file_datetimes(pathData)
-                        fileSize = self.get_file_size(pathData) if fileMode != 'LINK' else 0
+                        fileUID, fileGID =  self.get_file_uid_gid(fullPath)
+                        fileCTime, fileATime, fileMTime = self.get_file_datetimes(fullPath)
+                        fileSize = self.get_file_size(fullPath) if fileMode != 'LINK' else 0
 
                         # insert it into a data store
                         self.dataStore.insert(fileMode, fullFileParentPath, fileName, fileExt, fileSize, fileOwnerUsername, fileUID, fileGID,
@@ -73,8 +74,12 @@ class Crawler(object):
 
                         # update all parent directories with file size
                         for parentPath in pathData.parents:
-                            if parentPath not in inputPathData.parents: # do not update/insert directories that we aren't crawling into (i.e. parents of input dir)
-                                dirSizes[parentPath] = dirSizes.get(parentPath, 0) + int(fileSize)
+                            if parentPath in inputPathData.parents:# do not update/insert directories that we aren't crawling into (i.e. parents of input dir)
+                                break
+                            elif parentPath not in processedDirs:# only process a directory once
+                                processedDirs.add(parentPath)
+                                self.process_directory(parentPath)
+
 
                     except Exception as ex:
                         logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
@@ -90,93 +95,79 @@ class Crawler(object):
                     progressBar.set_description(pbarDesc % k)
                     progressBar.update(1)
 
-            # insert rows for directory information
-            pbarDesc = "Processing directory %s"
-            pbarDescSleeping = "Sleeping while processing directory %s..."
-            k = 0
-            for dirPath, dirSize in dirSizes.items():
-                try:
-                    # get basic file information from path object and do not process it if it fails
-                    pathData = Path(dirPath)
-
-                    # gather directory info
-                    fileMode = 'DIR'
-                    fileName = pathData.stem
-                    fileExt = ''
-                    fileRealPath = self.get_file_real_path(pathData, fileMode, fileExt)
-                    fileOwnerUsername = self.get_file_owner_username(pathData)
-                    fileUID, fileGID = self.get_file_uid_gid(pathData)
-                    fileCTime, fileATime, fileMTime = self.get_file_datetimes(pathData)
-
-                    # insert it into the data store
-                    self.dataStore.insert(fileMode, dirPath, fileName, fileExt, dirSize, fileOwnerUsername, fileUID, fileGID,
-                                          fileCTime, fileATime, fileMTime, fileRealPath, currOS)
-                except Exception as ex:
-                    logging.error("[%s]: Problem processing directory %s \r\n %s" % (str(datetime.now()), dirPath, ex))
-
-                # sleep for 3 seconds every 10000 directories so the I/O bus doesn't lock up
-                if k >= 10000 and k % 10000 == 0:
-                    progressBar.set_description(pbarDescSleeping % k)
-                    progressBar.update(0)
-                    time.sleep(3)
-                k += 1
-
-                # update progress bar
-                progressBar.set_description(pbarDesc % k)
-                progressBar.update(1)
-
             # finalize the data store
             self.dataStore.finalize()
 
-    def get_file_size(self, pathData):
-        """Returns the size of the file.
-
-        If there are too many levels of symbolic links, this may throw an exception. The file size returned will just be -1
+    def process_directory(self, pathData):
+        """Processes a directory and adds it to the data store.
 
         Params:
             pathData (Path): The Path object of the file
+        """
+
+        dirPath = str(pathData)
+        try:
+            # gather directory info
+            fileMode = 'DIR'
+            fileName = pathData.stem
+            fileExt = ''
+            fileRealPath = ''
+            fileOwnerUsername = self.get_file_owner_username(pathData)
+            fileUID, fileGID = self.get_file_uid_gid(dirPath)
+            fileCTime, fileATime, fileMTime = self.get_file_datetimes(dirPath)
+            dirSize = self.get_dir_size(dirPath)
+
+            # insert it into the data store
+            self.dataStore.insert(fileMode, dirPath, fileName, fileExt, dirSize, fileOwnerUsername, fileUID, fileGID,
+                                  fileCTime, fileATime, fileMTime, fileRealPath, currOS)
+        except Exception as ex:
+            logging.error("[%s]: Problem processing directory %s \r\n %s" % (str(datetime.now()), dirPath, ex))
+
+    def get_file_size(self, fullPath):
+        """Returns the size of the file.
+
+        If there are too many levels of symbolic links, this may throw an exception. The file size returned will just be '-1'
+
+        Params:
+            fullPath (str): The full path of the file
 
         Returns:
-            str: A string of the file size. If it doesn't exist then None is returned
+            str: A string of the file size.
 
         """
         try:
-            if pathData.exists():
-                fullPath = str(pathData)
-                fileStatData = os.stat(fullPath)
-                fileSize = fileStatData.st_size
+            fileStatData = os.stat(fullPath)
+            fileSize = fileStatData.st_size
 
-                return str(fileSize)
-            else:
-                return None
+            return str(fileSize)
         except Exception as ex:
-            logging.error(ex)
-            return -1
+            logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
+            return '-1'
 
 
-    def get_file_datetimes(self, pathData):
+    def get_file_datetimes(self, fullPath):
         """Returns the ctime, last accessed time, and the last modified time of the file at the given path.
 
         The "ctime" is different depending on operating system we are on. On Linux, ctime is the last time the file inode was modified. On
         Windows, ctime is the creation time.
 
         Params:
-            pathData (Path): The Path object of the file
+            fullPath (str): The full path of the file
 
         Returns:
             str: A datetime formatted timestamp string of the ctime
             str: A datetime formatted timestamp string of the last accessed time
             str: A datetime formatted timestamp string of the last modified time
         """
-        if pathData.exists():
-            fullPath = str(pathData)
+        try:
             fileStatData = os.stat(fullPath)
             cDateTime = datetime.fromtimestamp(fileStatData.st_ctime)
             accessedDateTime = datetime.fromtimestamp(fileStatData.st_atime)
             modifiedDateTime = datetime.fromtimestamp(fileStatData.st_mtime)
 
             return cDateTime, accessedDateTime, modifiedDateTime
-        else:
+        except Exception as ex:
+            logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
             return None, None, None
 
     # -----------------------------------------------------------------------------------------------------------------------------------
@@ -195,51 +186,52 @@ class Crawler(object):
                 pathData (Path): The Path object of the file
 
             Returns:
-                str: The username of the owner of the file. None is returned if the file does not exist
+                str: The username of the owner of the file.
             """
 
-            if pathData.exists():
-                fullPath = str(pathData)
+            fullPath = str(pathData)
+            try:
                 fileSecurityData = win32security.GetFileSecurity(fullPath, win32security.OWNER_SECURITY_INFORMATION)
                 (username, domain, sid_name_use) =  win32security.LookupAccountSid(None, fileSecurityData.GetSecurityDescriptorOwner())
 
                 return username
-            else:
+            except Exception as ex:
+                logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
                 return None
 
-        def get_file_uid_gid(self, pathData):
+        def get_file_uid_gid(self, fullPath):
             """Returns the uid of the owner of the file and the gid of the primary group owner of the file.
 
             In Windows, this value will be a lengthy string called a "security descriptor". The primary group SID is hardly used in
             Windows, but it will serve its purpose for the metadata gathering that needs to be done here.
 
             Params:
-                pathData (Path): The Path object of the file
+                fullPath (str): The full path of the file
 
             Returns:
                 str: The security descriptor (UID) of the owner of the file. None is returned if the file does not exist
                 str: The security descriptor (GID) of the primary group owner of the file. None is returned if the file does not exist
             """
 
-            if pathData.exists():
-                fullPath = str(pathData)
+            try:
                 fileSecurityData = win32security.GetFileSecurity(fullPath, win32security.OWNER_SECURITY_INFORMATION)
                 sidUser = fileSecurityData.GetSecurityDescriptorOwner()
                 fileSecurityData = win32security.GetFileSecurity(fullPath, win32security.GROUP_SECURITY_INFORMATION)
                 sidGroup = fileSecurityData.GetSecurityDescriptorGroup()
 
                 return win32security.ConvertSidToStringSid(sidUser), win32security.ConvertSidToStringSid(sidGroup)
-            else:
+            except Exception as ex:
+                logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
                 return None, None
 
-        def get_file_real_path(self, pathData, fileMode, fileExt):
+        def get_file_real_path(self, fullPath, fileMode, fileExt):
             """Returns the "real path" of the file.
 
             If it's a shortcut (.lnk file), it will return the true path that it's pointing to. If it's not a shortcut, then it will just return an empty string. If something goes
             wrong, then an empty string is also returned.
 
             Params:
-                pathData (Path): The path object of the file
+                fullPath (str): The full path of the file
                 fileMode (str): The mode of the file
                 fileExt (str): The extension of the file
 
@@ -247,18 +239,41 @@ class Crawler(object):
                 str: A string of the "real path" of the file.
 
             """
+
             try:
-                fullPath = str(pathData)
-                if fileExt.lower() == '.lnk' and pathData.exists() and fileMode == 'LINK':
+                if fileExt.lower() == '.lnk' and fileMode == 'LINK':
                     shell = win32com.client.Dispatch("WScript.Shell")
                     shortcut = shell.CreateShortCut(fullPath)
                     realPath = shortcut.Targetpath
+
                     return realPath
                 else:
                     return ''
             except Exception as ex:
-                logging.error(ex)
+                logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
                 return ''
+
+        def get_dir_size(self, fullPath):
+            """Retrieves the size of the directory.
+
+            Note that, for unknown rea
+
+            Params:
+                fullPath (str): The full path of the directory
+
+            Returns:
+                str: A string of the total size of the directory. If something goes wrong, '-1' is returned.
+            """
+
+            try:
+                fileSystemObject = win32com.client.Dispatch("Scripting.FileSystemObject")
+                folderObject = fileSystemObject.GetFolder(fullPath)
+                dirSize = folderObject.Size
+
+                return dirSize
+            except Exception as ex:
+                logging.error("[%s]: Problem processing directory %s \r\n %s" % (str(datetime.now()), fullPath, ex))
+                return '-1'
 
     # ----------------------------------------------------------------------------------------
     # LINUX implementations of getting usernames, uids, and gids
@@ -275,40 +290,37 @@ class Crawler(object):
                 pathData (Path): The Path object of the file
 
             Returns:
-                str: The username of the owner of the file. None is returned if the file does not exist
+                str: The username of the owner of the file.
             """
 
-            if pathData.exists():
-                try:
-                    owner = pathData.owner()
-                except Exception:
-                    owner = "NonNativeUser"
-                return owner
-            else:
-                return None
+            try:
+                owner = pathData.owner()
+            except Exception:
+                owner = "NonNativeUser"
+            return owner
 
-        def get_file_uid_gid(self, pathData):
+        def get_file_uid_gid(self, fullPath):
             """Returns the uid of the owner (user) of the file and the gid of the group of the file.
 
             In Linux, all files have and regularly use the "user" and "group" metadata information
 
             Params:
-                pathData (Path): The Path object of the file
+                fullPath (str): The full path of the file
 
             Returns:
-                str: The UID of the owner (user) of the file. None is returned if the file does not exist
-                str: The GID of the group of the file. None is returned if the file does not exist
+                str: The UID of the owner (user) of the file.
+                str: The GID of the group of the file.
             """
 
-            if pathData.exists():
-                fullPath = str(pathData)
+            try:
                 statData = os.stat(fullPath)
 
                 return statData.st_uid, statData.st_gid
-            else:
+            except Exception as ex:
+                logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
                 return None, None
 
-        def get_file_real_path(self, pathData, fileMode, fileExt):
+        def get_file_real_path(self, fullPath, fileMode, fileExt):
             """Returns the "real path" of the file.
 
             If it's a symbolic link, it will return the true path that it's pointing to (even if it's multi-layered). If it's not a symbolic link, then it will just return an empty
@@ -317,24 +329,42 @@ class Crawler(object):
             If it's a shortcut ('.lnk' file), the true path cannot be determined and a string with the problem stated is returned
 
             Params:
-                pathData (Path): The path object of the file
+                fullPath (str): The full path of the file
                 fileMode (str): The mode of the file
                 fileExt (str): The file extension
 
             Returns:
                 str: A string of the "real path" of the file.
-
             """
+
             try:
-                fullPath = str(pathData)
-                if fileExt.lower() != '.lnk' and pathData.exists() and fileMode == 'LINK':
+                if fileExt.lower() != '.lnk' and fileMode == 'LINK':
                     realPath = os.path.realpath(fullPath)
                     return realPath
                 else:
                     return ''
             except Exception as ex:
-                logging.error(ex)
+                logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
                 return ''
+
+        def get_dir_size(self, fullPath):
+            """Retrieves the size of the directory via "du".
+
+            Params:
+                fullPath (str): The full path of the directory
+
+            Returns:
+                str: A string of the total size of the directory. If something goes wrong, '-1' is returned.
+            """
+
+            try:
+                dirSize = subprocess.check_output(['du','-s', fullPath]).split()[0].decode('utf-8')
+                return dirSize
+            except Exception as ex:
+                logging.error("[%s]: Problem processing directory %s \r\n %s" % (str(datetime.now()), fullPath, ex))
+                return '-1'
+
+
 
 
     def print_file_information(self, pathData):
