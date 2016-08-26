@@ -8,7 +8,7 @@ from tqdm import tqdm
 osObj = sys.platform.lower()
 from pathlib import Path
 if osObj.startswith('win'):
-    import win32security, win32com.client
+    import win32security, win32com.client, colorama
     currOS = 'windows'
 elif osObj.startswith('linux'):
     import subprocess
@@ -80,17 +80,20 @@ class Crawler(object):
                                                       fileCTime, fileATime, fileMTime, fileRealPath, currOS)
 
                                 # update all parent directories with file size
-                                for parentPath in pathData.parents:
-                                    if parentPath in inputPathData.parents:# do not update/insert directories that we aren't crawling into (i.e. parents of input dir)
-                                        break
-                                    elif parentPath not in processedDirs:
-                                        # update progress bar
-                                        progressBar.set_description(pbarDirDesc % d)
-                                        progressBar.update(1)
-                                        d += 1
-                                        # only process a directory once
-                                        processedDirs.add(parentPath)
-                                        self.process_directory(parentPath)
+                                with tqdm(desc=(pbarDirDesc % d)) as dirProgressBar:
+                                    for parentPath in pathData.parents:
+                                        # do not update/insert directories that we aren't crawling into (i.e. parents of input dir)
+                                        if parentPath in inputPathData.parents:
+                                            break
+                                        # process directory for the data store
+                                        elif parentPath not in processedDirs:
+                                            # update progress bar first
+                                            dirProgressBar.set_description(pbarDirDesc % d)
+                                            dirProgressBar.update(1)
+                                            d += 1
+                                            # only process a directory once
+                                            processedDirs.add(parentPath)
+                                            self.process_directory(parentPath)
 
                             except Exception as ex:
                                 logging.error("[%s]: Problem processing file %s \r\n %s" % ( str(datetime.now()), fullPath, util.get_formatted_exception() ))
