@@ -2,7 +2,7 @@ from arguments import Arguments
 from crawler import Crawler
 from datastore_factory import DataStoreFactory
 from datetime import datetime
-import logging
+import logging, utilities as util
 
 def main():
     """The main method of the file crawler program.
@@ -38,7 +38,7 @@ def main():
         fileCrawler.crawl()
 
     except Exception as ex:
-        logging.error("[%s]: %s \r" % (str(datetime.now()), ex))
+        logging.error("[%s]: %s \r" % ( str(datetime.now()), util.get_formatted_exception() ))
 
     # Log that the crawl is finished
     logging.info("[%s]: File crawl is finished \r" % str(datetime.now()))

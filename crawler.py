@@ -1,4 +1,4 @@
-import os, sys, time, logging
+import os, sys, time, logging, utilities as util
 from datetime import datetime
 from tqdm import tqdm
 
@@ -52,6 +52,10 @@ class Crawler(object):
             # insert rows for file information
             for path, dirs, files in os.walk(self.inputDir):
                 for name in files:
+                    # update progress bar
+                    progressBar.set_description(pbarDesc % k)
+                    progressBar.update(1)
+
                     # get basic file information from path object and do not process it if it fails
                     decodedPath = path.encode('utf-8', 'surrogateescape').decode('ISO-8859-1')
                     decodedName = name.encode('utf-8', 'surrogateescape').decode('ISO-8859-1')
@@ -80,16 +84,16 @@ class Crawler(object):
                                 if parentPath in inputPathData.parents:# do not update/insert directories that we aren't crawling into (i.e. parents of input dir)
                                     break
                                 elif parentPath not in processedDirs:
-                                    # only process a directory once
-                                    processedDirs.add(parentPath)
-                                    self.process_directory(parentPath)
                                     # update progress bar
                                     progressBar.set_description(pbarDirDesc % d)
                                     progressBar.update(1)
                                     d += 1
+                                    # only process a directory once
+                                    processedDirs.add(parentPath)
+                                    self.process_directory(parentPath)
 
                         except Exception as ex:
-                            logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
+                            logging.error("[%s]: Problem processing file %s \r\n %s" % ( str(datetime.now()), fullPath, util.get_formatted_exception() ))
 
                     # sleep for 3 seconds every 10000 files so the I/O bus doesn't lock up
                     if k+d >= 10000 and  k+d % 10000 == 0:
@@ -97,10 +101,6 @@ class Crawler(object):
                         progressBar.update(1)
                         time.sleep(3)
                     k += 1
-
-                    # update progress bar
-                    progressBar.set_description(pbarDesc % k)
-                    progressBar.update(1)
 
             # finalize the data store
             self.dataStore.finalize()
@@ -128,7 +128,7 @@ class Crawler(object):
             self.dataStore.insert(fileMode, dirPath, fileName, fileExt, dirSize, fileOwnerUsername, fileUID, fileGID,
                                   fileCTime, fileATime, fileMTime, fileRealPath, currOS)
         except Exception as ex:
-            logging.error("[%s]: Problem processing directory %s \r\n %s" % (str(datetime.now()), dirPath, ex))
+            logging.error("[%s]: Problem processing directory %s \r\n %s" % ( str(datetime.now()), dirPath, util.get_formatted_exception() ))
 
     def get_file_size(self, fullPath):
         """Returns the size of the file.
@@ -148,7 +148,7 @@ class Crawler(object):
 
             return str(fileSize)
         except Exception as ex:
-            logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
+            logging.error("[%s]: Problem processing file %s \r\n %s" % ( str(datetime.now()), fullPath, util.get_formatted_exception() ))
             return '-1'
 
 
@@ -174,7 +174,7 @@ class Crawler(object):
 
             return cDateTime, accessedDateTime, modifiedDateTime
         except Exception as ex:
-            logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
+            logging.error("[%s]: Problem processing file %s \r\n %s" % ( str(datetime.now()), fullPath, util.get_formatted_exception() ))
             return None, None, None
 
     # -----------------------------------------------------------------------------------------------------------------------------------
@@ -203,7 +203,7 @@ class Crawler(object):
 
                 return username
             except Exception as ex:
-                logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
+                logging.error("[%s]: Problem processing file %s \r\n %s" % ( str(datetime.now()), fullPath, util.get_formatted_exception() ))
                 return None
 
         def get_file_uid_gid(self, fullPath):
@@ -228,7 +228,7 @@ class Crawler(object):
 
                 return win32security.ConvertSidToStringSid(sidUser), win32security.ConvertSidToStringSid(sidGroup)
             except Exception as ex:
-                logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
+                logging.error("[%s]: Problem processing file %s \r\n %s" % ( str(datetime.now()), fullPath, util.get_formatted_exception() ))
                 return None, None
 
         def get_file_real_path(self, fullPath, fileMode, fileExt):
@@ -257,13 +257,14 @@ class Crawler(object):
                 else:
                     return ''
             except Exception as ex:
-                logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
+                logging.error("[%s]: Problem processing file %s \r\n %s" % ( str(datetime.now()), fullPath, util.get_formatted_exception() ))
                 return ''
 
         def get_dir_size(self, fullPath):
             """Retrieves the size of the directory.
 
-            Note that, for unknown rea
+            Note that, for unknown reasons, sometimes this throws an error and won't give you the size. If that ever happens, -1 is returned. This happened when I ever asked for the
+            "Documents" folder size, but I have no idea why.
 
             Params:
                 fullPath (str): The full path of the directory
@@ -279,7 +280,7 @@ class Crawler(object):
 
                 return dirSize
             except Exception as ex:
-                logging.error("[%s]: Problem processing directory %s \r\n %s" % (str(datetime.now()), fullPath, ex))
+                logging.error("[%s]: Problem processing directory %s \r\n %s" % ( str(datetime.now()), fullPath, util.get_formatted_exception() ))
                 return '-1'
 
     # ----------------------------------------------------------------------------------------
@@ -324,7 +325,7 @@ class Crawler(object):
 
                 return statData.st_uid, statData.st_gid
             except Exception as ex:
-                logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
+                logging.error("[%s]: Problem processing file %s \r\n %s" % ( str(datetime.now()), fullPath, util.get_formatted_exception() ))
                 return None, None
 
         def get_file_real_path(self, fullPath, fileMode, fileExt):
@@ -351,7 +352,7 @@ class Crawler(object):
                 else:
                     return ''
             except Exception as ex:
-                logging.error("[%s]: Problem processing file %s \r\n %s" % (str(datetime.now()), fullPath, ex))
+                logging.error("[%s]: Problem processing file %s \r\n %s" % ( str(datetime.now()), fullPath, util.get_formatted_exception() ))
                 return ''
 
         def get_dir_size(self, fullPath):
@@ -368,11 +369,8 @@ class Crawler(object):
                 dirSize = subprocess.check_output(['du','-s', fullPath]).split()[0].decode('utf-8')
                 return dirSize
             except Exception as ex:
-                logging.error("[%s]: Problem processing directory %s \r\n %s" % (str(datetime.now()), fullPath, ex))
+                logging.error("[%s]: Problem processing directory %s \r\n %s" % ( str(datetime.now()), fullPath, util.get_formatted_exception() ))
                 return '-1'
-
-
-
 
     def print_file_information(self, pathData):
         """A debugging method that, given a file Path object, it prints out diagnostic information about the file.
