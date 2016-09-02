@@ -103,7 +103,7 @@ The Windows implementations of getting usernames, "UIDs", and "GIDs" is imperfec
 Currently, the script only supports CSV data stores. SQLite is planned to be built in later versions.
 
 ## Symbolic Links and Shortcuts
-Symbolic links and shortcuts (".lnk" files in Windows) are known to cause problems when you ask about their metadata (file size, whether or not the path exists, etc.) due to the operating system throwing an error when there are too many levels of symbolic links. Thus, these files *are not processed*, but they are logged in a file with the same name (but ".log" extension) as the output file and is placed in the output directory. 
+Symbolic links and shortcuts (".lnk" files in Windows) are known to cause problems when you ask about their metadata (file size, whether or not the path exists, etc.) due to the operating system throwing an error when there are too many levels of symbolic links. Thus, these problems *are attempted to be processed*, but their size will not be recorded. If any errors are thrown during the processing of these files, processing will be aborted and the file will be logged. Note that ".lnk" files can ONLY be properly processed on Windows machines, as Linux machines have no easy way of getting information like its target.
 
 
 -------------------------------------------------------------------------------
