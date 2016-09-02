@@ -7,22 +7,43 @@
 
 This file system crawler, as the name implies, recursively crawls through a given input directory and gathers metadata about visited files and stores them into a "data store". 
 
-The gathered metadata includes:
+## Gathered Metadata
 
-* The file parent directory's absolute path
-* The file's name (stem) without its "suffix" (extension)
-* The file's extension
-* The file's size
-* The file's UID
-* The file's GID
-* The file's "ctime"
-* The file's last accessed time
-* The file's last modified time
-* The current operating system
-
-The "ctime" is different depending on what operating system we are on. On Linux, ctime is the last time the file inode was modified. On Windows, ctime is the creation time.
+Note that the "ctime" is different depending on what operating system we are on. On Linux, ctime is the last time the file inode was modified. On Windows, ctime is the creation time.
 
 The file's UID and GID are also different depending on what operating system we are on. On Windows, these values will be lengthy strings called "security descriptors" (SIDs), and in Linux they are simply integer identifiers for the file owner's user ID (UID) and the file's group (GID). The UID and GID in Windows are the file owner's SID and the primary group owner's SID.
+
+### v1.0 (Up to August 18th 2016)
+
+| Column Name              | Description                                                   |
+| ------------------------ | ------------------------------------------------------------- |
+| `full_file_parent_path`  | The file parent directory's absolute path                     |
+| `file_name`              | The file's name (stem) without its "suffix" (extension)       |
+| `file_ext`               | The file's extension                                          |
+| `file_size`              | The file's size (in bytes)                                    |
+| `file_uid`               | The file's UID                                                |
+| `file_gid`               | The file's GID                                                |
+| `file_ctime`             | The file's "ctime"                                            |
+| `file_accessed_time`     | The file's last accessed time                                 |
+| `file_modified_time`     | The file's last modified time                                 |
+| `current_os`             | The current operating system                                  |
+
+### v2.0 (Current)
+
+| Column Name              | Description                                                   |
+| ------------------------ | ------------------------------------------------------------- |
+| `full_file_parent_path`  | The file parent directory's absolute path                     |
+| `file_mode`              | The file's "mode" {DIR, FILE, SYM}                            |
+| `file_name`              | The file's name (stem) without its "suffix" (extension)       |
+| `file_ext`               | The file's extension                                          |
+| `file_size_in_bytes`     | The file's size (in bytes)                                    |
+| `file_uid`               | The file's UID                                                |
+| `file_gid`               | The file's GID                                                |
+| `file_ctime`             | The file's "ctime"                                            |
+| `file_accessed_time`     | The file's last accessed time                                 |
+| `file_modified_time`     | The file's last modified time                                 |
+| `file_real_path`         | If it's a SYM file, the file's "real path" or target path     |
+| `current_os`             | The current operating system                                  |
 
 # Data Stores
 
