@@ -33,7 +33,7 @@ The file's UID and GID are also different depending on what operating system we 
 | Column Name              | Description                                                   |
 | ------------------------ | ------------------------------------------------------------- |
 | `full_file_parent_path`  | The file parent directory's absolute path                     |
-| `file_mode`              | The file's "mode" {DIR, FILE, SYM}                            |
+| `file_mode`              | The file's "mode" {DIR, FILE, LINK}                           |
 | `file_name`              | The file's name (stem) without its "suffix" (extension)       |
 | `file_ext`               | The file's extension                                          |
 | `file_size_in_bytes`     | The file's size (in bytes)                                    |
