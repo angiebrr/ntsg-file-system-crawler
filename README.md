@@ -42,7 +42,7 @@ The file's UID and GID are also different depending on what operating system we 
 | `file_ctime`             | The file's "ctime"                                            |
 | `file_accessed_time`     | The file's last accessed time                                 |
 | `file_modified_time`     | The file's last modified time                                 |
-| `file_real_path`         | If it's a SYM file, the file's "real path" or target path     |
+| `file_real_path`         | If it's a LINK file, the file's "real path" or target path    |
 | `current_os`             | The current operating system                                  |
 
 # Data Stores
