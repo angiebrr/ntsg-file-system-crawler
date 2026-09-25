@@ -23,7 +23,7 @@
 
 A Python script that walks a directory tree on Linux or Windows and records metadata about every file and directory it finds (size, owner, timestamps, link targets) to a CSV file.
 
-I wrote this in 2016 as the Linux sysadmin for NTSG, a research group at the University of Montana. We needed a way to keep tabs on the files researchers were creating on our file systems; one use was finding duplicates of huge files. The crawls fed into [file-system-crawl-reporter](https://github.com/angiebrr/file-system-crawl-reporter), which turned them into per-user and per-crawl size reports.
+I wrote this in 2016 as the Linux sysadmin for NTSG, a research group at the University of Montana. We needed a way to keep tabs on the files researchers were creating on our file systems; one use was finding duplicates of huge files. The crawls fed into [ntsg-file-system-crawl-reporter](https://github.com/angiebrr/ntsg-file-system-crawl-reporter), which turned them into per-user and per-crawl size reports.
 
 **Tech:** Python 3.5, pathlib, tqdm, pywin32 (Windows), CSV
 
